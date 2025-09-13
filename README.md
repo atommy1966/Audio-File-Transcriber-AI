@@ -4,7 +4,7 @@ This is a web application that transcribes audio files into text using Google's 
 
 ## App Link
 
-[https://audio-file-transcriber-ai-369376059789.us-west1.run.app/](https://audio-file-transcriber-ai-369376059789.us-west1.run.app/)
+<a href="https://audio-file-transcriber-ai-369376059789.us-west1.run.app/" target="_blank" rel="noopener noreferrer">Audio File Transcriber AI</a>
 
 ## Features
 
