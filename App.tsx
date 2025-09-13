@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { transcribeAudio } from './services/geminiService';
 import { AppState } from './types';
-import { UploadIcon, LoaderIcon } from './components/Icons';
+import { UploadIcon, LoaderIcon, XCircleIcon } from './components/Icons';
+import { TranscriptionEditor } from './components/TranscriptionEditor';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -19,6 +20,8 @@ const App: React.FC = () => {
       return () => {
         URL.revokeObjectURL(url);
       };
+    } else {
+      setAudioSrc(null);
     }
   }, [audioFile]);
 
@@ -29,6 +32,20 @@ const App: React.FC = () => {
       setTranscription('');
       setErrorMessage(null);
       setAppState(AppState.IDLE);
+    }
+    if(fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  const handleClearFile = () => {
+    setAudioFile(null);
+    setAudioSrc(null);
+    setTranscription('');
+    setErrorMessage(null);
+    setAppState(AppState.IDLE);
+    if(fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -61,17 +78,17 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white flex items-center justify-center font-sans p-4">
-      <main className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center text-center">
-        <header className="mb-10">
+      <main className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center text-center px-4">
+        <header className="mb-8">
           <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
             Audio File Transcriber AI
           </h1>
           <p className="mt-4 text-lg text-gray-400">
-            Select an audio file and let Gemini transcribe it for you.
+            Select an audio file, let Gemini transcribe it, and edit the result.
           </p>
         </header>
         
-        <div className="w-full flex flex-col items-center gap-6">
+        <div className="w-full">
             <input
                 type="file"
                 ref={fileInputRef}
@@ -79,68 +96,67 @@ const App: React.FC = () => {
                 accept="audio/mp3,audio/wav,audio/webm,audio/ogg,audio/m4a,audio/x-m4a"
                 className="hidden"
             />
-            <div 
-                onClick={handleDropzoneClick}
-                className="w-full max-w-lg h-48 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 hover:bg-gray-800/20 transition-colors"
-            >
-                {audioFile ? (
-                    <div className="text-center">
-                        <p className="text-lg font-medium text-gray-300">File Selected:</p>
-                        <p className="text-cyan-400 mt-1">{audioFile.name}</p>
-                        <p className="text-sm text-gray-500 mt-2">({(audioFile.size / 1024 / 1024).toFixed(2)} MB)</p>
-                    </div>
-                ) : (
+            {!audioFile ? (
+                <div 
+                    onClick={handleDropzoneClick}
+                    className="w-full h-40 border-2 border-dashed border-gray-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 hover:bg-gray-800/20 transition-colors"
+                >
                     <div className="text-center text-gray-400">
                         <UploadIcon className="h-12 w-12 mx-auto mb-2" />
                         <p className="font-semibold">Click to select an audio file</p>
                         <p className="text-sm text-gray-500">MP3, WAV, WEBM, OGG, M4A</p>
                     </div>
-                )}
-            </div>
-
-            <button
-                onClick={handleTranscribe}
-                disabled={!audioFile || appState === AppState.PROCESSING}
-                className="w-64 h-16 rounded-lg flex items-center justify-center text-xl font-semibold transition-all duration-300 ease-in-out shadow-lg focus:outline-none focus:ring-4 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:shadow-none bg-blue-600 hover:bg-blue-700 focus:ring-blue-400 text-white"
-            >
-              {appState === AppState.PROCESSING ? (
-                <>
-                    <LoaderIcon className="h-8 w-8 mr-3 animate-spin" />
-                    Transcribing...
-                </>
-              ) : (
-                'Transcribe Audio'
-              )}
-            </button>
+                </div>
+            ) : (
+                <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 transition-all duration-300">
+                    <div className="flex-grow w-full text-left">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-gray-400">Selected file:</p>
+                                <p className="font-semibold text-white truncate pr-2" title={audioFile.name}>{audioFile.name}</p>
+                            </div>
+                            <button onClick={handleClearFile} className="text-gray-400 hover:text-white transition-colors" aria-label="Clear file selection">
+                                <XCircleIcon className="w-7 h-7" />
+                            </button>
+                        </div>
+                         {audioSrc && (
+                            <audio controls src={audioSrc} className="w-full rounded-lg mt-2" aria-label="Audio player for uploaded file">
+                                Your browser does not support the audio element.
+                            </audio>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleTranscribe}
+                        disabled={appState === AppState.PROCESSING}
+                        className="w-full sm:w-48 h-14 flex-shrink-0 rounded-lg flex items-center justify-center text-lg font-semibold transition-all duration-300 ease-in-out shadow-lg focus:outline-none focus:ring-4 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:shadow-none bg-blue-600 hover:bg-blue-700 focus:ring-blue-400 text-white"
+                    >
+                    {appState === AppState.PROCESSING ? (
+                        <>
+                            <LoaderIcon className="h-7 w-7 mr-2 animate-spin" />
+                            Transcribing...
+                        </>
+                    ) : (
+                        'Transcribe'
+                    )}
+                    </button>
+                </div>
+            )}
         </div>
-
-        {audioSrc && (
-          <div className="w-full max-w-lg mt-8">
-            <audio controls src={audioSrc} className="w-full rounded-lg" aria-label="Audio player for uploaded file">
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        )}
 
         <div className="w-full mt-8 min-h-[150px]">
           {appState === AppState.ERROR && errorMessage && (
-            <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg" role="alert">
+            <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg max-w-3xl mx-auto" role="alert">
               <strong className="font-bold">Error: </strong>
               <span className="block sm:inline">{errorMessage}</span>
             </div>
           )}
 
-          {transcription && (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl shadow-lg p-6 w-full text-left">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-200">Transcription Result:</h2>
-              <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {transcription}
-              </p>
-            </div>
+          {transcription && !errorMessage && (
+            <TranscriptionEditor transcription={transcription} />
           )}
 
           {appState === AppState.IDLE && !transcription && !errorMessage && !audioFile && (
-             <p className="text-gray-500">Your transcribed text will appear here.</p>
+             <p className="text-gray-500 mt-4">Your transcribed text will appear here.</p>
           )}
         </div>
       </main>
